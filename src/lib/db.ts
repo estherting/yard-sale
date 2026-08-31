@@ -38,6 +38,12 @@ function getDb(): Database.Database {
         email TEXT,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
+
+      CREATE TABLE IF NOT EXISTS subscribers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT NOT NULL UNIQUE,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
     `);
   }
   return db;
@@ -206,4 +212,32 @@ export function addToWaitlist(
 export function removeFromWaitlist(id: number): void {
   const db = getDb();
   db.prepare("DELETE FROM waitlist WHERE id = ?").run(id);
+}
+
+export type Subscriber = {
+  id: number;
+  email: string;
+  created_at: string;
+};
+
+export function addSubscriber(email: string): boolean {
+  const db = getDb();
+  try {
+    db.prepare("INSERT INTO subscribers (email) VALUES (?)").run(email);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function getAllSubscribers(): Subscriber[] {
+  const db = getDb();
+  return db
+    .prepare("SELECT * FROM subscribers ORDER BY created_at DESC")
+    .all() as Subscriber[];
+}
+
+export function removeSubscriber(id: number): void {
+  const db = getDb();
+  db.prepare("DELETE FROM subscribers WHERE id = ?").run(id);
 }

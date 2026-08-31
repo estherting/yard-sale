@@ -1,5 +1,6 @@
 import { getAllItems } from "@/lib/db";
 import Link from "next/link";
+import SubscribeForm from "./subscribe-form";
 
 const statusStyles = {
   available: "bg-green-600 text-white",
@@ -75,6 +76,7 @@ export default function Home() {
           ))}
         </div>
       )}
+      <SubscribeForm />
     </div>
   );
 }

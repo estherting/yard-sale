@@ -24,9 +24,16 @@ type WaitlistEntry = {
   created_at: string;
 };
 
+type Subscriber = {
+  id: number;
+  email: string;
+  created_at: string;
+};
+
 export default function AdminPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [waitlists, setWaitlists] = useState<Record<number, WaitlistEntry[]>>({});
+  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [title, setTitle] = useState("");
@@ -40,6 +47,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     loadItems();
+    loadSubscribers();
   }, []);
 
   async function loadItems() {
@@ -59,11 +67,21 @@ export default function AdminPage() {
     setWaitlists(wl);
   }
 
+  async function loadSubscribers() {
+    const res = await fetch("/api/admin/subscribers");
+    setSubscribers(await res.json());
+  }
+
   async function handleRemoveFromWaitlist(itemId: number, entryId: number) {
     await fetch(`/api/items/${itemId}/waitlist?entryId=${entryId}`, {
       method: "DELETE",
     });
     await loadItems();
+  }
+
+  async function handleRemoveSubscriber(id: number) {
+    await fetch(`/api/admin/subscribers?id=${id}`, { method: "DELETE" });
+    await loadSubscribers();
   }
 
   function resetForm() {
@@ -365,6 +383,37 @@ export default function AdminPage() {
           <p className="text-gray-500 text-center py-8">
             No items yet. Click &quot;Add Item&quot; to get started.
           </p>
+        )}
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-xl font-bold mb-4">
+          Subscribers ({subscribers.length})
+        </h2>
+        {subscribers.length === 0 ? (
+          <p className="text-gray-500 text-sm">No subscribers yet.</p>
+        ) : (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 divide-y divide-gray-100">
+            {subscribers.map((sub) => (
+              <div
+                key={sub.id}
+                className="px-4 py-3 flex items-center justify-between"
+              >
+                <div>
+                  <span className="text-sm">{sub.email}</span>
+                  <span className="text-xs text-gray-400 ml-2">
+                    {new Date(sub.created_at + "Z").toLocaleDateString()}
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleRemoveSubscriber(sub.id)}
+                  className="text-xs text-red-500 hover:underline"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
