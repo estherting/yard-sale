@@ -1,11 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getCachedUser, setCachedUser } from "@/lib/user-cache";
 
 export default function SubscribeForm() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const cached = getCachedUser();
+    if (cached.email) setEmail(cached.email);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -20,7 +26,10 @@ export default function SubscribeForm() {
 
     const data = await res.json();
     setMessage(data.message || data.error);
-    if (res.ok) setEmail("");
+    if (res.ok) {
+      setCachedUser({ email });
+      setEmail("");
+    }
     setSubmitting(false);
   }
 

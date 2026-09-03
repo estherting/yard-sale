@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { getCachedUser, setCachedUser } from "@/lib/user-cache";
 
 export default function WaitlistPage() {
   const params = useParams();
@@ -19,6 +20,12 @@ export default function WaitlistPage() {
       .then(setItem);
   }, [params.id]);
 
+  useEffect(() => {
+    const cached = getCachedUser();
+    if (cached.name) setName(cached.name);
+    if (cached.email) setEmail(cached.email);
+  }, []);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
@@ -31,6 +38,7 @@ export default function WaitlistPage() {
     });
 
     if (res.ok) {
+      setCachedUser({ name, email });
       setSuccess(true);
     } else {
       const data = await res.json();
