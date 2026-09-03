@@ -214,6 +214,16 @@ export function removeFromWaitlist(id: number): void {
   db.prepare("DELETE FROM waitlist WHERE id = ?").run(id);
 }
 
+export function isEmailOnWaitlist(itemId: number, email: string): boolean {
+  const db = getDb();
+  const row = db
+    .prepare(
+      "SELECT 1 FROM waitlist WHERE item_id = ? AND lower(email) = ? LIMIT 1"
+    )
+    .get(itemId, email.trim().toLowerCase());
+  return !!row;
+}
+
 export type Subscriber = {
   id: number;
   email: string;

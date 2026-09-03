@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getItem, getWaitlist, addToWaitlist, removeFromWaitlist } from "@/lib/db";
+import {
+  getItem,
+  getWaitlist,
+  addToWaitlist,
+  removeFromWaitlist,
+  isEmailOnWaitlist,
+} from "@/lib/db";
 import { sendWaitlistNotification } from "@/lib/email";
 
 export async function GET(
@@ -34,6 +40,25 @@ export async function POST(
   if (item.status !== "reserved") {
     return NextResponse.json(
       { error: "Waitlist is only available for reserved items" },
+      { status: 409 }
+    );
+  }
+
+  const normalizedEmail = String(email).trim().toLowerCase();
+
+  if (
+    item.reserved_email &&
+    item.reserved_email.trim().toLowerCase() === normalizedEmail
+  ) {
+    return NextResponse.json(
+      { error: "You've already reserved this item." },
+      { status: 409 }
+    );
+  }
+
+  if (isEmailOnWaitlist(Number(id), email)) {
+    return NextResponse.json(
+      { error: "You're already on the waitlist for this item." },
       { status: 409 }
     );
   }
