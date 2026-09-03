@@ -34,7 +34,7 @@ export default function WaitlistPage() {
     const res = await fetch(`/api/items/${params.id}/waitlist`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email: email || null }),
+      body: JSON.stringify({ name, email }),
     });
 
     if (res.ok) {
@@ -128,6 +128,7 @@ export default function WaitlistPage() {
             <input
               id="email"
               type="email"
+              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
@@ -140,7 +141,7 @@ export default function WaitlistPage() {
 
           <button
             type="submit"
-            disabled={submitting || !name.trim()}
+            disabled={submitting || !name.trim() || !email.trim()}
             className="bg-amber-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-amber-600 transition-colors disabled:opacity-50"
           >
             {submitting ? "Joining..." : "Join Waitlist"}
