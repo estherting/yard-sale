@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 
 type Item = {
@@ -30,6 +30,14 @@ type Subscriber = {
   created_at: string;
 };
 
+type PersonActivity = {
+  key: string;
+  names: string[];
+  email: string | null;
+  reserved: { title: string; status: string }[];
+  waitlisted: string[];
+};
+
 export default function AdminPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [waitlists, setWaitlists] = useState<Record<number, WaitlistEntry[]>>({});
@@ -49,6 +57,54 @@ export default function AdminPage() {
     loadItems();
     loadSubscribers();
   }, []);
+
+  // Group reservations and waitlist entries by person (keyed by email when
+  // available, otherwise by name), so each person's claimed items appear together.
+  const people = useMemo<PersonActivity[]>(() => {
+    const map = new Map<string, PersonActivity>();
+    const titleById = new Map(items.map((it) => [it.id, it.title]));
+
+    const ensure = (name: string, email: string | null) => {
+      const key = (email?.trim().toLowerCase() || name.trim().toLowerCase());
+      let p = map.get(key);
+      if (!p) {
+        p = { key, names: [], email, reserved: [], waitlisted: [] };
+        map.set(key, p);
+      }
+      if (email && !p.email) p.email = email;
+      const trimmed = name.trim();
+      if (
+        trimmed &&
+        !p.names.some((n) => n.toLowerCase() === trimmed.toLowerCase())
+      ) {
+        p.names.push(trimmed);
+      }
+      return p;
+    };
+
+    for (const item of items) {
+      if (
+        item.reserved_by &&
+        (item.status === "reserved" || item.status === "purchased")
+      ) {
+        ensure(item.reserved_by, item.reserved_email).reserved.push({
+          title: item.title,
+          status: item.status,
+        });
+      }
+    }
+
+    for (const [itemId, entries] of Object.entries(waitlists)) {
+      const title = titleById.get(Number(itemId)) || "(unknown item)";
+      for (const entry of entries) {
+        ensure(entry.name, entry.email).waitlisted.push(title);
+      }
+    }
+
+    return Array.from(map.values()).sort((a, b) =>
+      (a.names[0] || "").localeCompare(b.names[0] || "")
+    );
+  }, [items, waitlists]);
 
   async function loadItems() {
     const res = await fetch("/api/items");
@@ -383,6 +439,61 @@ export default function AdminPage() {
           <p className="text-gray-500 text-center py-8">
             No items yet. Click &quot;Add Item&quot; to get started.
           </p>
+        )}
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-xl font-bold mb-4">
+          People ({people.length})
+        </h2>
+        {people.length === 0 ? (
+          <p className="text-gray-500 text-sm">
+            No reservations or waitlist entries yet.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {people.map((p) => (
+              <div
+                key={p.key}
+                className="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
+              >
+                <div className="mb-2">
+                  <span className="font-semibold">{p.names.join(" / ")}</span>
+                  {p.email && (
+                    <span className="text-sm text-gray-500 ml-2">
+                      {p.email}
+                    </span>
+                  )}
+                </div>
+                {p.reserved.length > 0 && (
+                  <div className="flex gap-2 mb-1">
+                    <span className="text-xs font-semibold text-green-700 uppercase tracking-wide shrink-0 mt-0.5">
+                      Reserved
+                    </span>
+                    <span className="text-sm text-gray-700">
+                      {p.reserved
+                        .map(
+                          (r) =>
+                            r.title +
+                            (r.status === "purchased" ? " (purchased)" : "")
+                        )
+                        .join(", ")}
+                    </span>
+                  </div>
+                )}
+                {p.waitlisted.length > 0 && (
+                  <div className="flex gap-2">
+                    <span className="text-xs font-semibold text-amber-600 uppercase tracking-wide shrink-0 mt-0.5">
+                      Waitlisted
+                    </span>
+                    <span className="text-sm text-gray-700">
+                      {p.waitlisted.join(", ")}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
