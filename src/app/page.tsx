@@ -21,7 +21,15 @@ export default function Home() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">Items for Sale</h1>
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <h1 className="text-3xl font-bold">Items for Sale</h1>
+        <Link
+          href="/my-stuff"
+          className="shrink-0 border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+        >
+          View my stuff
+        </Link>
+      </div>
       {items.length === 0 ? (
         <p className="text-gray-500 text-center py-16">
           No items listed yet.

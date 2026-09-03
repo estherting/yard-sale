@@ -241,3 +241,71 @@ export function removeSubscriber(id: number): void {
   const db = getDb();
   db.prepare("DELETE FROM subscribers WHERE id = ?").run(id);
 }
+
+// --- "My stuff": a visitor's own reservations and waitlist entries, by email ---
+
+export type MyReservation = {
+  id: number;
+  title: string;
+  price: number;
+  main_photo: string;
+};
+
+export type MyWaitlistEntry = {
+  entry_id: number;
+  item_id: number;
+  title: string;
+  price: number;
+  main_photo: string;
+};
+
+export function getReservationsByEmail(email: string): MyReservation[] {
+  const db = getDb();
+  return db
+    .prepare(
+      `SELECT id, title, price, main_photo FROM items
+       WHERE status = 'reserved' AND lower(reserved_email) = ?
+       ORDER BY title`
+    )
+    .all(email.trim().toLowerCase()) as MyReservation[];
+}
+
+export function getWaitlistByEmail(email: string): MyWaitlistEntry[] {
+  const db = getDb();
+  return db
+    .prepare(
+      `SELECT w.id AS entry_id, i.id AS item_id, i.title, i.price, i.main_photo
+       FROM waitlist w JOIN items i ON w.item_id = i.id
+       WHERE lower(w.email) = ?
+       ORDER BY i.title`
+    )
+    .all(email.trim().toLowerCase()) as MyWaitlistEntry[];
+}
+
+// Cancel a reservation only if the email matches the one that reserved it.
+export function cancelReservationByEmail(
+  itemId: number,
+  email: string
+): boolean {
+  const db = getDb();
+  const result = db
+    .prepare(
+      `UPDATE items
+       SET status = 'available', reserved_by = NULL, reserved_email = NULL
+       WHERE id = ? AND status = 'reserved' AND lower(reserved_email) = ?`
+    )
+    .run(itemId, email.trim().toLowerCase());
+  return result.changes > 0;
+}
+
+// Remove a waitlist entry only if the email matches the one on the entry.
+export function removeWaitlistByEmail(
+  entryId: number,
+  email: string
+): boolean {
+  const db = getDb();
+  const result = db
+    .prepare("DELETE FROM waitlist WHERE id = ? AND lower(email) = ?")
+    .run(entryId, email.trim().toLowerCase());
+  return result.changes > 0;
+}
